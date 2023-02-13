@@ -46,9 +46,48 @@ with open("symmetric_key", "wb") as f:
 # Target files to encrypt
 targs = ["targ1.txt", "targ2.txt", "targ3.txt"]
 
-# Encrypt the files
-for targ in targs:
-    with open(targ, "rb") as f:
-        data = f.read()
-    with open(targ, "wb") as f:
-        f.write(initsmem.encrypt(data))
+# Check if the user wants to encrypt the files
+encrypt = input("Do you want to encrypt the files (yes/no?) ")
+if encrypt.lower() == "yes":
+    for targ in targs:
+        with open(targ, "rb") as f:
+            data = f.read()
+        with open(targ, "wb") as f:
+            f.write(initsmem.encrypt(data))
+    print("Files have been encrypted")
+else:
+    print("Files have not been encrypted.")
+
+decrypt = input("Do you want to decrypt the files (yes/no?) ")
+if decrypt.lower() == "yes":
+    # Read the private key
+    with open("private_key.pem", "rb") as f:
+        priv_key = serialization.load_pem_private_key(
+            f.read(),
+            password=None,
+            backend=default_backend()
+        )
+
+    # Read the symmetric key
+    with open("symmetric_key", "rb") as f:
+        smem = priv_key.decrypt(
+            f.read(),
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+    # Initialize the symmetric key
+    initsmem = Fernet(smem)
+
+    # Decrypt the target files
+    for targ in targs:
+        with open(targ, "rb") as f:
+            data = f.read()
+        with open(targ, "wb") as f:
+            f.write(initsmem.decrypt(data))
+    print("Files have been decrypted")
+else:
+    print("Files have not been decrypted.")
